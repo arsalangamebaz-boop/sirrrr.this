@@ -4,7 +4,7 @@ on:
   schedule:
     # 10:00 PM PKT = 17:00 UTC
     - cron: "0 17 * * *"
-  workflow_dispatch: # allow manual trigger
+  workflow_dispatch:
 
 jobs:
   post:
@@ -22,7 +22,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          playwright install --with-deps
+          playwright install
+          npx playwright install-deps
 
       - name: Run bot
         env:
