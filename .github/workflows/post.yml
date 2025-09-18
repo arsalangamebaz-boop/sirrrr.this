@@ -26,7 +26,7 @@ jobs:
           playwright install
           npx playwright install-deps
 
-           # 🔎 Debug secrets (safe check)
+      # 🔎 Debug secrets (safe check)
       - name: Debug IG secrets
         run: |
           echo "IG_USER length: ${#IG_USER}"
@@ -45,7 +45,7 @@ jobs:
           IG_PASS: ${{ secrets.IG_PASS }}
           IG_STORAGE_STATE_JSON: ${{ secrets.IG_STORAGE_STATE_JSON }}
 
-      # ✅ Write storage_state.json safely
+      # ✅ Write storage_state.json safely if secret exists
       - name: Write storage_state.json
         run: |
           if [ -n "$IG_STORAGE_STATE_JSON" ]; then
