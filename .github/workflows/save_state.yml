@@ -1,7 +1,7 @@
 name: Save Instagram Storage State
 
 on:
-  workflow_dispatch:   # enables "Run workflow" button in Actions tab
+  workflow_dispatch:
 
 jobs:
   save-state:
@@ -39,15 +39,69 @@ jobs:
               sys.exit("❌ IG_USER / IG_PASS secrets missing.")
 
           with sync_playwright() as p:
-              browser = p.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
+              browser = p.chromium.launch(
+                  headless=True,
+                  args=["--disable-blink-features=AutomationControlled", "--no-sandbox", "--disable-dev-shm-usage"]
+              )
               context = browser.new_context()
               page = context.new_page()
-              page.goto("https://www.instagram.com/accounts/login/", timeout=60000)
-              page.wait_for_selector("input[name='username']", timeout=60000)
-              page.fill("input[name='username']", username)
-              page.fill("input[name='password']", password)
-              page.click("button[type='submit']")
-              page.wait_for_selector("nav", timeout=60000)
+              page.goto("https://www.instagram.com/accounts/login/", timeout=90000)
+              page.wait_for_timeout(5000)  # let assets load
+
+              # Try multiple possible login input selectors
+              selectors = [
+                  "input[name='username']",
+                  "input[name='email']",
+                  "input[aria-label='Phone number, username, or email']",
+                  "input[type='text']"
+              ]
+
+              found = None
+              for sel in selectors:
+                  try:
+                      page.wait_for_selector(sel, timeout=20000)
+                      found = sel
+                      break
+                  except Exception:
+                      continue
+
+              if not found:
+                  print("❌ Could not find username input field.")
+                  print("🔎 Page preview:\n", page.content()[:300])  # DEBUG: print first 300 chars of HTML
+                  sys.exit(1)
+
+              page.fill(found, username)
+
+              # password field
+              pw_selectors = ["input[name='password']", "input[type='password']"]
+              pw_found = None
+              for sel in pw_selectors:
+                  try:
+                      page.wait_for_selector(sel, timeout=20000)
+                      pw_found = sel
+                      break
+                  except Exception:
+                      continue
+
+              if not pw_found:
+                  print("❌ Could not find password input field.")
+                  print("🔎 Page preview:\n", page.content()[:300])  # DEBUG
+                  sys.exit(1)
+
+              page.fill(pw_found, password)
+
+              # click login button
+              try:
+                  page.click("button[type='submit']")
+              except:
+                  page.keyboard.press("Enter")
+
+              try:
+                  page.wait_for_selector("nav", timeout=90000)
+              except:
+                  print("❌ Login failed or blocked.")
+                  print("🔎 Page preview:\n", page.content()[:300])  # DEBUG
+                  sys.exit(1)
 
               state = context.storage_state()
               print("✅ Copy the JSON below into IG_STORAGE_STATE_JSON secret:\n")
