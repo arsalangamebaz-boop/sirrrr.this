@@ -1,0 +1,57 @@
+name: Save Instagram Storage State
+
+on:
+  workflow_dispatch: # run manually only
+
+jobs:
+  save-state:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Playwright
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright
+          playwright install
+          npx playwright install-deps
+
+      - name: Generate storage_state.json
+        env:
+          IG_USER: ${{ secrets.IG_USER }}
+          IG_PASS: ${{ secrets.IG_PASS }}
+        run: |
+          python - <<'EOF'
+from playwright.sync_api import sync_playwright
+import json, os, sys
+
+username = os.getenv("IG_USER")
+password = os.getenv("IG_PASS")
+
+if not username or not password:
+    sys.exit("❌ IG_USER / IG_PASS secrets missing.")
+
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
+    context = browser.new_context()
+    page = context.new_page()
+    page.goto("https://www.instagram.com/accounts/login/", timeout=60000)
+    page.wait_for_selector("input[name='username']", timeout=60000)
+    page.fill("input[name='username']", username)
+    page.fill("input[name='password']", password)
+    page.click("button[type='submit']")
+    # wait until nav bar appears (login success)
+    page.wait_for_selector("nav", timeout=60000)
+
+    state = context.storage_state()
+    print("✅ Copy the JSON below into IG_STORAGE_STATE_JSON secret:\n")
+    print(json.dumps(state))
+    browser.close()
+EOF
