@@ -29,28 +29,28 @@ jobs:
           IG_PASS: ${{ secrets.IG_PASS }}
         run: |
           python - <<'EOF'
-from playwright.sync_api import sync_playwright
-import json, os, sys
+          from playwright.sync_api import sync_playwright
+          import json, os, sys
 
-username = os.getenv("IG_USER")
-password = os.getenv("IG_PASS")
+          username = os.getenv("IG_USER")
+          password = os.getenv("IG_PASS")
 
-if not username or not password:
-    sys.exit("❌ IG_USER / IG_PASS secrets missing.")
+          if not username or not password:
+              sys.exit("❌ IG_USER / IG_PASS secrets missing.")
 
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
-    context = browser.new_context()
-    page = context.new_page()
-    page.goto("https://www.instagram.com/accounts/login/", timeout=60000)
-    page.wait_for_selector("input[name='username']", timeout=60000)
-    page.fill("input[name='username']", username)
-    page.fill("input[name='password']", password)
-    page.click("button[type='submit']")
-    page.wait_for_selector("nav", timeout=60000)
+          with sync_playwright() as p:
+              browser = p.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
+              context = browser.new_context()
+              page = context.new_page()
+              page.goto("https://www.instagram.com/accounts/login/", timeout=60000)
+              page.wait_for_selector("input[name='username']", timeout=60000)
+              page.fill("input[name='username']", username)
+              page.fill("input[name='password']", password)
+              page.click("button[type='submit']")
+              page.wait_for_selector("nav", timeout=60000)
 
-    state = context.storage_state()
-    print("✅ Copy the JSON below into IG_STORAGE_STATE_JSON secret:\n")
-    print(json.dumps(state))
-    browser.close()
-EOF
+              state = context.storage_state()
+              print("✅ Copy the JSON below into IG_STORAGE_STATE_JSON secret:\n")
+              print(json.dumps(state))
+              browser.close()
+          EOF
