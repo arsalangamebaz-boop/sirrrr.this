@@ -52,6 +52,7 @@ def download_random_video():
 # === Step 3: Instagram Login ===
 def login_instagram(page, username, password):
     page.goto("https://www.instagram.com/accounts/login/", timeout=60000)
+    page.wait_for_timeout(5000)  # wait 5 seconds for page assets to load
 
     # Wait for either 'username' or 'email' input
     page.wait_for_selector("input[name='username'], input[name='email']", timeout=60000)
@@ -130,4 +131,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
