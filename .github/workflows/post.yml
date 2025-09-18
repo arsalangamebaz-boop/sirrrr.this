@@ -28,9 +28,22 @@ jobs:
           playwright install
           npx playwright install-deps
 
+      # 🔎 Debug step (remove after testing)
+      - name: Debug IG secrets
+        run: |
+          echo "IG_USER length: ${#IG_USER}"
+          if [ -z "$IG_PASS" ]; then 
+            echo "IG_PASS set: no"
+          else 
+            echo "IG_PASS set: yes"
+          fi
+        env:
+          IG_USER: ${{ secrets.IG_USER }}
+          IG_PASS: ${{ secrets.IG_PASS }}
+
       - name: Run bot
         env:
-          IG_USERNAME: ${{ secrets.IG_USERNAME }}
-          IG_PASSWORD: ${{ secrets.IG_PASSWORD }}
+          IG_USER: ${{ secrets.IG_USER }}
+          IG_PASS: ${{ secrets.IG_PASS }}
         run: |
-          python main.py || echo "⚠️ main.py failed, using fallback hashtags"
+          python main.py
