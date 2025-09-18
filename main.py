@@ -116,7 +116,15 @@ def main():
 
     # Run Playwright
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(
+    headless=False,
+    args=[
+        "--disable-blink-features=AutomationControlled",
+        "--disable-infobars",
+        "--window-size=1280,800"
+    ]
+)
+
         context = browser.new_context()
         page = context.new_page()
 
@@ -131,5 +139,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
