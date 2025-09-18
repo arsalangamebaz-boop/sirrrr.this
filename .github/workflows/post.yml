@@ -2,8 +2,9 @@ name: Instagram Automation
 
 on:
   schedule:
-    - cron: "0 17 * * *"  # Runs every day at 10:00 PM PKT (17:00 UTC)
-  workflow_dispatch:
+    # Runs every day at 10:00 PM PKT (17:00 UTC)
+    - cron: "0 17 * * *"
+  workflow_dispatch: # manual run possible
 
 jobs:
   run-bot:
@@ -22,13 +23,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Install Playwright Browsers
-        run: |
           playwright install
           npx playwright install-deps
 
-      # 🔎 Debug step (remove after testing)
+      # 🔎 Debug secrets (safe check)
       - name: Debug IG secrets
         run: |
           echo "IG_USER length: ${#IG_USER}"
@@ -37,13 +35,26 @@ jobs:
           else 
             echo "IG_PASS set: yes"
           fi
+          if [ -z "$IG_STORAGE_STATE_JSON" ]; then 
+            echo "IG_STORAGE_STATE_JSON set: no"
+          else 
+            echo "IG_STORAGE_STATE_JSON set: yes"
+          fi
         env:
           IG_USER: ${{ secrets.IG_USER }}
           IG_PASS: ${{ secrets.IG_PASS }}
+          IG_STORAGE_STATE_JSON: ${{ secrets.IG_STORAGE_STATE_JSON }}
+
+      # Write storage_state.json if secret exists
+      - name: Write storage_state.json
+        if: ${{ secrets.IG_STORAGE_STATE_JSON != '' }}
+        run: |
+          echo "${{ secrets.IG_STORAGE_STATE_JSON }}" > storage_state.json
 
       - name: Run bot
         env:
           IG_USER: ${{ secrets.IG_USER }}
           IG_PASS: ${{ secrets.IG_PASS }}
+          IG_STORAGE_STATE_PATH: storage_state.json
         run: |
           python main.py
