@@ -52,13 +52,22 @@ def download_random_video():
 # === Step 3: Instagram Login ===
 def login_instagram(page, username, password):
     page.goto("https://www.instagram.com/accounts/login/", timeout=60000)
-    page.wait_for_selector("input[name='username']")
 
-    page.fill("input[name='username']", username)
+    # Wait for either 'username' or 'email' input
+    page.wait_for_selector("input[name='username'], input[name='email']", timeout=60000)
+
+    # Fill login form
+    try:
+        page.fill("input[name='username']", username)
+    except:
+        page.fill("input[name='email']", username)
+
     page.fill("input[name='password']", password)
+
+    # Click Login button
     page.click("button[type='submit']")
 
-    # Wait for homepage
+    # Wait for homepage (nav bar appears after login)
     page.wait_for_selector("nav", timeout=60000)
 
 
@@ -121,3 +130,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
