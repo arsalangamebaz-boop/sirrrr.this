@@ -251,8 +251,11 @@ def upload_video(page, local_video_path, caption):
 def main():
     print("=== Instagram Auto Poster (headed-mode safe) ===")
     storage_state_path = os.getenv("IG_STORAGE_STATE_PATH")  # workflow can set this path (e.g. storage_state.json)
-    username = os.getenv("IG_USER")
-    password = os.getenv("IG_PASS")
+          if storage_state_path and Path(storage_state_path).exists():
+    print("Using storage state from:", storage_state_path)
+    context = browser.new_context(storage_state=str(storage_state_path), **context_kwargs)
+else:
+    raise EnvironmentError("❌ No storage_state.json found. Please set IG_STORAGE_STATE_JSON secret.")
 
     # Get current day (do NOT increment now; increment only after successful post)
     current_day = read_day()
@@ -354,4 +357,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
