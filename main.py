@@ -22,6 +22,7 @@ def read_day():
     except Exception:
         return 1
 
+
 def write_next_day(next_day):
     DAY_COUNTER_FILE.write_text(str(next_day))
 
@@ -29,7 +30,9 @@ def write_next_day(next_day):
 # === Download random video from drive_links.txt ===
 def download_random_video():
     if not DRIVE_LINKS_FILE.exists():
-        raise FileNotFoundError("drive_links.txt missing — add direct download links (uc?export=download&id=...)")
+        raise FileNotFoundError(
+            "drive_links.txt missing — add direct download links (uc?export=download&id=...)"
+        )
     with DRIVE_LINKS_FILE.open("r") as f:
         links = [line.strip() for line in f if line.strip()]
     if not links:
@@ -60,6 +63,7 @@ def is_logged_in(page):
         except PWTimeout:
             return False
 
+
 def login_instagram(page, username, password):
     """
     Robust login: long timeouts, flexible selectors.
@@ -74,7 +78,7 @@ def login_instagram(page, username, password):
         "input[name='username']",
         "input[name='email']",
         "input[aria-label='Phone number, username, or email']",
-        "input[type='text']"
+        "input[type='text']",
     ]
     found = None
     for sel in selectors:
@@ -89,7 +93,9 @@ def login_instagram(page, username, password):
         # last effort: inspect page text for unusual blocking
         content = page.content()[:4000]
         print("Login inputs not found. Page snippet:", content[:800])
-        raise RuntimeError("Login form not found on Instagram login page (blocked or changed).")
+        raise RuntimeError(
+            "Login form not found on Instagram login page (blocked or changed)."
+        )
 
     # fill username
     try:
@@ -120,7 +126,7 @@ def login_instagram(page, username, password):
         "button[type='submit']",
         "button:has-text('Log In')",
         "button:has-text('Log in')",
-        "button:has-text('Log In')"
+        "button:has-text('Log In')",
     ]
     clicked = False
     for sel in login_btn_selectors:
@@ -148,9 +154,17 @@ def login_instagram(page, username, password):
         # Could be a checkpoint/2FA — capture page snapshot for debugging
         print("Login did not complete within timeout. Checking for challenge or 2FA...")
         # Try to detect common texts
-        if "two-factor" in page.content().lower() or "verification" in page.content().lower() or "challenge" in page.content().lower():
-            raise RuntimeError("Instagram is asking for 2FA / checkpoint. Consider using storage_state.json or manual login.")
-        raise RuntimeError("Login timeout — Instagram may be blocking automated logins.")
+        if (
+            "two-factor" in page.content().lower()
+            or "verification" in page.content().lower()
+            or "challenge" in page.content().lower()
+        ):
+            raise RuntimeError(
+                "Instagram is asking for 2FA / checkpoint. Consider using storage_state.json or manual login."
+            )
+        raise RuntimeError(
+            "Login timeout — Instagram may be blocking automated logins."
+        )
 
 
 # === Upload video using web create flow ===
@@ -162,7 +176,7 @@ def upload_video(page, local_video_path, caption):
         'svg[aria-label="New post"]',
         'svg[aria-label="Create"]',
         'a[href="/create/style/"]',
-        'div[role="menuitem"] svg[aria-label="New post"]'
+        'div[role="menuitem"] svg[aria-label="New post"]',
     ]
     for sel in create_selectors:
         try:
@@ -207,7 +221,7 @@ def upload_video(page, local_video_path, caption):
     textarea_selectors = [
         "textarea[aria-label='Write a caption…']",
         "textarea[aria-label='Write a caption...']",
-        "textarea"
+        "textarea",
     ]
     caption_done = False
     for sel in textarea_selectors:
@@ -224,7 +238,12 @@ def upload_video(page, local_video_path, caption):
 
     # click Share/Publish
     shared = False
-    for sel in ['div[role="dialog"] button:has-text("Share")', 'button:has-text("Share")', 'button:has-text("Publish")', 'button:has-text("Post")']:
+    for sel in [
+        'div[role="dialog"] button:has-text("Share")',
+        'button:has-text("Share")',
+        'button:has-text("Publish")',
+        'button:has-text("Post")',
+    ]:
         try:
             btn = page.query_selector(sel)
             if btn:
@@ -239,7 +258,9 @@ def upload_video(page, local_video_path, caption):
             page.keyboard.press("Enter")
             shared = True
         except Exception:
-            raise RuntimeError("Could not find Share/Publish button; upload may have failed.")
+            raise RuntimeError(
+                "Could not find Share/Publish button; upload may have failed."
+            )
 
     # Wait a bit for the post to process
     print("Waiting for post to finish processing (10s)...")
@@ -250,12 +271,20 @@ def upload_video(page, local_video_path, caption):
 # === Main ===
 def main():
     print("=== Instagram Auto Poster (headed-mode safe) ===")
-    storage_state_path = os.getenv("IG_STORAGE_STATE_PATH")  # workflow can set this path (e.g. storage_state.json)
+    storage_state_path = os.getenv(
+        "IG_STORAGE_STATE_PATH"
+    )  # workflow can set this path (e.g. storage_state.json)
+
+
 if storage_state_path and Path(storage_state_path).exists():
     print("Using storage state from:", storage_state_path)
-    context = browser.new_context(storage_state=str(storage_state_path), **context_kwargs)
+    context = browser.new_context(
+        storage_state=str(storage_state_path), **context_kwargs
+    )
 else:
-    raise EnvironmentError("❌ No storage_state.json found. Please set IG_STORAGE_STATE_JSON secret.")
+    raise EnvironmentError(
+        "❌ No storage_state.json found. Please set IG_STORAGE_STATE_JSON secret."
+    )
 
     # Get current day (do NOT increment now; increment only after successful post)
     current_day = read_day()
@@ -283,7 +312,7 @@ else:
     caption = f"Reminder – Day {current_day}\n\n{hashtags_text}"
     print("Caption preview:", caption[:160])
 
-        # Playwright run
+    # Playwright run
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(
@@ -309,13 +338,17 @@ else:
             used_storage = False
             if storage_state_path and Path(storage_state_path).exists():
                 print("✅ Attempting to use storage_state.json:", storage_state_path)
-                context = browser.new_context(storage_state=str(storage_state_path), **context_kwargs)
+                context = browser.new_context(
+                    storage_state=str(storage_state_path), **context_kwargs
+                )
                 page = context.new_page()
                 if is_logged_in(page):
                     print("✅ Logged in via storage_state.json")
                     used_storage = True
                 else:
-                    print("⚠️ Storage state present but NOT logged in. Will try username/password fallback.")
+                    print(
+                        "⚠️ Storage state present but NOT logged in. Will try username/password fallback."
+                    )
                     context.close()
                     context = browser.new_context(**context_kwargs)
                     page = context.new_page()
@@ -326,7 +359,9 @@ else:
 
             if not used_storage:
                 if not username or not password:
-                    raise EnvironmentError("❌ IG_USER/IG_PASS missing and storage_state.json didn’t work.")
+                    raise EnvironmentError(
+                        "❌ IG_USER/IG_PASS missing and storage_state.json didn’t work."
+                    )
                 print("🔑 Logging in with username/password…")
                 login_instagram(page, username, password)
 
@@ -357,6 +392,3 @@ else:
 
 if __name__ == "__main__":
     main()
-
-
-
