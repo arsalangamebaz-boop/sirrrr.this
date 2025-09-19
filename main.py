@@ -280,7 +280,7 @@ def main():
     caption = f"Reminder – Day {current_day}\n\n{hashtags_text}"
     print("Caption preview:", caption[:160])
 
-    # Playwright run
+        # Playwright run
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(
@@ -295,7 +295,6 @@ def main():
                 ],
             )
 
-            # set some context options to look like a regular user
             ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             context_kwargs = {
                 "user_agent": ua,
@@ -304,34 +303,37 @@ def main():
                 "timezone_id": "Asia/Karachi",
             }
 
-            # If storage_state exists, use it (safer for 2FA). Otherwise create fresh context.
+            used_storage = False
             if storage_state_path and Path(storage_state_path).exists():
-                print("Using storage state from:", storage_state_path)
+                print("✅ Attempting to use storage_state.json:", storage_state_path)
                 context = browser.new_context(storage_state=str(storage_state_path), **context_kwargs)
+                page = context.new_page()
+                if is_logged_in(page):
+                    print("✅ Logged in via storage_state.json")
+                    used_storage = True
+                else:
+                    print("⚠️ Storage state present but NOT logged in. Will try username/password fallback.")
+                    context.close()
+                    context = browser.new_context(**context_kwargs)
+                    page = context.new_page()
+
             else:
                 context = browser.new_context(**context_kwargs)
+                page = context.new_page()
 
-            page = context.new_page()
-
-            # If storage state was used, verify logged in; otherwise perform credential login.
-            if storage_state_path and Path(storage_state_path).exists():
-                if not is_logged_in(page):
-                    print("Storage state present but not logged in — attempting credentials login as fallback.")
-                    if not username or not password:
-                        raise EnvironmentError("IG_USER/IG_PASS missing; storage state didn't log in.")
-                    login_instagram(page, username, password)
-            else:
+            if not used_storage:
                 if not username or not password:
-                    raise EnvironmentError("IG_USER and IG_PASS must be set as environment variables.")
+                    raise EnvironmentError("❌ IG_USER/IG_PASS missing and storage_state.json didn’t work.")
+                print("🔑 Logging in with username/password…")
                 login_instagram(page, username, password)
 
             # Upload
             upload_video(page, video_path, caption)
 
-            # successful -> increment day counter
+            # success -> increment
             next_day = current_day + 1
             write_next_day(next_day)
-            print("Wrote next day:", next_day)
+            print("📈 Day counter incremented:", next_day)
 
             # cleanup
             try:
@@ -342,6 +344,7 @@ def main():
 
             context.close()
             browser.close()
+
     except Exception as exc:
         print("ERROR during run:", exc)
         traceback.print_exc()
@@ -351,3 +354,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
