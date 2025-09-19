@@ -29,12 +29,18 @@ jobs:
       # 🔎 Debug secrets (safe check)
       - name: Debug IG secrets
         run: |
-          echo "IG_USER length: ${#IG_USER}"
+          if [ -z "$IG_USER" ]; then 
+            echo "IG_USER set: no"
+          else 
+            echo "IG_USER set: yes"
+          fi
+
           if [ -z "$IG_PASS" ]; then 
             echo "IG_PASS set: no"
           else 
             echo "IG_PASS set: yes"
           fi
+
           if [ -z "$IG_STORAGE_STATE_JSON" ]; then 
             echo "IG_STORAGE_STATE_JSON set: no"
           else 
@@ -45,17 +51,13 @@ jobs:
           IG_PASS: ${{ secrets.IG_PASS }}
           IG_STORAGE_STATE_JSON: ${{ secrets.IG_STORAGE_STATE_JSON }}
 
-      # ✅ Write storage_state.json safely if secret exists
+      # ✅ Write storage_state.json from secret
       - name: Write storage_state.json
+        if: ${{ secrets.IG_STORAGE_STATE_JSON != '' }}
         run: |
-          if [ -n "$IG_STORAGE_STATE_JSON" ]; then
-            echo "$IG_STORAGE_STATE_JSON" > storage_state.json
-          else
-            echo "No IG_STORAGE_STATE_JSON secret set, skipping file write."
-          fi
-        env:
-          IG_STORAGE_STATE_JSON: ${{ secrets.IG_STORAGE_STATE_JSON }}
+          echo '${{ secrets.IG_STORAGE_STATE_JSON }}' > storage_state.json
 
+      # 🚀 Run bot
       - name: Run bot
         env:
           IG_USER: ${{ secrets.IG_USER }}
