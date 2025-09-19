@@ -2,3 +2,5 @@ playwright==1.34.0
 requests==2.31.0
 beautifulsoup4==4.12.2
 pytrends==4.9.2
+urllib3==2.0.7
+certifi>=2023.7.22
