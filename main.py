@@ -251,7 +251,7 @@ def upload_video(page, local_video_path, caption):
 def main():
     print("=== Instagram Auto Poster (headed-mode safe) ===")
     storage_state_path = os.getenv("IG_STORAGE_STATE_PATH")  # workflow can set this path (e.g. storage_state.json)
-          if storage_state_path and Path(storage_state_path).exists():
+if storage_state_path and Path(storage_state_path).exists():
     print("Using storage state from:", storage_state_path)
     context = browser.new_context(storage_state=str(storage_state_path), **context_kwargs)
 else:
@@ -357,5 +357,6 @@ else:
 
 if __name__ == "__main__":
     main()
+
 
 
