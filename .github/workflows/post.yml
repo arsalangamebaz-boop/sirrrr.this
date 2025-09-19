@@ -26,42 +26,28 @@ jobs:
           playwright install
           npx playwright install-deps
 
-      # 🔎 Debug secrets (safe check)
-      - name: Debug IG secrets
-        run: |
-          if [ -z "$IG_USER" ]; then 
-            echo "IG_USER set: no"
-          else 
-            echo "IG_USER set: yes"
-          fi
-
-          if [ -z "$IG_PASS" ]; then 
-            echo "IG_PASS set: no"
-          else 
-            echo "IG_PASS set: yes"
-          fi
-
-          if [ -z "$IG_STORAGE_STATE_JSON" ]; then 
-            echo "IG_STORAGE_STATE_JSON set: no"
-          else 
-            echo "IG_STORAGE_STATE_JSON set: yes"
-          fi
-        env:
-          IG_USER: ${{ secrets.IG_USER }}
-          IG_PASS: ${{ secrets.IG_PASS }}
-          IG_STORAGE_STATE_JSON: ${{ secrets.IG_STORAGE_STATE_JSON }}
-
       # ✅ Write storage_state.json from secret
       - name: Write storage_state.json
-        if: ${{ secrets.IG_STORAGE_STATE_JSON != '' }}
         run: |
-          echo '${{ secrets.IG_STORAGE_STATE_JSON }}' > storage_state.json
+          if [ -n "$IG_STORAGE_STATE_JSON" ]; then
+            echo "$IG_STORAGE_STATE_JSON" > storage_state.json
+            echo "✅ storage_state.json written"
+          else
+            echo "❌ IG_STORAGE_STATE_JSON not set"
+            exit 1
+          fi
+        env:
+          IG_STORAGE_STATE_JSON: ${{ secrets.IG_STORAGE_STATE_JSON }}
 
-      # 🚀 Run bot
+      # 🔍 Preview (only first 200 chars, safe)
+      - name: Preview storage_state.json
+        run: |
+          head -c 200 storage_state.json
+          echo -e "\n✅ storage_state.json exists (showing first 200 chars)"
+
+      # ▶️ Run the bot
       - name: Run bot
         env:
-          IG_USER: ${{ secrets.IG_USER }}
-          IG_PASS: ${{ secrets.IG_PASS }}
           IG_STORAGE_STATE_PATH: storage_state.json
         run: |
           python main.py
