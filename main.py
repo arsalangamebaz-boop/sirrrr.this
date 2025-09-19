@@ -166,7 +166,7 @@ def main():
     try:
         tags = get_trending_hashtags()
         if isinstance(tags, (list, tuple)):
-            hashtags_text = " ".join(f"#{t.lstrip('#')}" for t in tags[:25])
+            hashtags_text = " ".join(f"#{t.lstrip('#')}" for t in tags[:20])  # max 20
         else:
             hashtags_text = str(tags)
     except Exception as e:
