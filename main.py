@@ -1,6 +1,7 @@
-# instagram_fixed_solution.py
+# instagram_fixed_solution.py (enhanced debug logging and verification)
 # FIXED VERSION - Solves "Element is not attached to the DOM" error
 # September 19, 2025 - DOM attachment issue resolved
+# Additional: added console/network logging, file-input verification and post-share checks
 
 import os
 import random
@@ -32,6 +33,33 @@ class InstagramFixedAutomation:
         self.page.screenshot(path=f"debug_{filename}.png")
         print(f"📸 Screenshot saved: debug_{filename}.png")
     
+    def install_event_listeners(self):
+        """Attach handlers to capture page console messages and network failures"""
+        try:
+            self.page.on("console", lambda msg: print(f"PAGE CONSOLE [{msg.type}]: {msg.text}"))
+        except Exception:
+            pass
+        try:
+            self.page.on("pageerror", lambda err: print(f"PAGE ERROR: {err}"))
+        except Exception:
+            pass
+        try:
+            self.page.on("requestfailed", lambda req: print(f"REQUEST FAILED: {req.url} -> {req.failure}"))
+        except Exception:
+            pass
+        try:
+            # Log important responses (heuristic: upload/graphql/media endpoints)
+            def log_response(resp):
+                try:
+                    url = resp.url
+                    if any(k in url for k in ("/upload/", "/media/", "/graphql/")):
+                        print(f"RESPONSE [{resp.status}] {url}")
+                except Exception:
+                    pass
+            self.page.on("response", log_response)
+        except Exception:
+            pass
+
     def find_create_button(self):
         """Find Create button - span:has-text('Create')"""
         print("🔍 Step 1: Looking for Create button...")
@@ -389,7 +417,14 @@ class InstagramFixedAutomation:
             file_input.set_input_files(str(video_path.resolve()))
             print(f"✅ Video uploaded: {video_path.name}")
             
-            # Wait for upload processing
+            # Verify file input has files (extra debug)
+            try:
+                file_count = self.page.evaluate("() => { const el = document.getElementById('injected-file-input'); return el ? el.files.length : 0; }")
+                print(f"🔎 Injected file-input files length: {file_count}")
+            except Exception as e:
+                print(f"⚠️ Could not evaluate file input files: {e}")
+            
+            # Wait for upload processing; rely on screenshots and explicit waits
             time.sleep(5)
             self.wait_and_screenshot("03_file_uploaded")
             
@@ -430,15 +465,32 @@ class InstagramFixedAutomation:
                 print("📤 Clicking Share button...")
                 share_button.click()
                 print("⏳ Waiting for post to complete...")
-                time.sleep(10)
-                self.wait_and_screenshot("07_share_clicked")
                 
-                # Wait for completion confirmation
-                time.sleep(5)
+                # Wait up to 60s for clear success indicator (toast or a 'shared' text)
+                success = False
+                for _ in range(12):
+                    time.sleep(5)
+                    # Try common success indicators (heuristic)
+                    try:
+                        found1 = self.page.query_selector('*:has-text("Your post has been shared")')
+                        found2 = self.page.query_selector('*:has-text("shared")')
+                        found3 = self.page.query_selector('*:has-text("Post shared")')
+                        if found1 or found2 or found3:
+                            success = True
+                            print("✅ Found success indicator on page after sharing.")
+                            break
+                    except Exception:
+                        pass
+                self.wait_and_screenshot("07_share_clicked")
                 self.wait_and_screenshot("08_post_complete")
                 
-                print("✅ FIXED AUTOMATION COMPLETED SUCCESSFULLY!")
-                return True
+                if success:
+                    print("✅ FIXED AUTOMATION COMPLETED SUCCESSFULLY!")
+                    return True
+                else:
+                    print("⚠️ No explicit 'shared' indicator found after clicking Share.")
+                    # As fallback, keep screenshots and logs for inspection, return False so user can examine
+                    return False
             else:
                 print("❌ Share button not found - upload incomplete")
                 return False
@@ -561,6 +613,8 @@ def main():
                 page.set_default_timeout(30000)
                 
                 automation = InstagramFixedAutomation(page)
+                # Attach debug listeners
+                automation.install_event_listeners()
                 success = automation.attempt_upload(video_path, caption)
                 
                 context.close()
@@ -589,18 +643,18 @@ def main():
         print(f"📅 Day counter updated: {current_day} → {next_day}")
         
     else:
-        print("❌ Fixed automation failed")
+        print("❌ Fixed automation reported no explicit success. Please inspect debug screenshots and logs.")
         print("\n🔧 TROUBLESHOOTING:")
         print("1. Check debug_*.png screenshots")
-        print("2. Verify storage_state.json is valid")
-        print("3. Check browser logs for errors")
-        print("4. DOM attachment error should be fixed now")
+        print("2. Verify storage_state.json is valid and logged-in")
+        print("3. Look for PAGE CONSOLE / REQUEST FAILED entries above")
+        print("4. Re-run headful (PLAYWRIGHT_HEADLESS=false) and observe UI")
     
     # Cleanup
     try:
         if VIDEO_LOCAL.exists():
             VIDEO_LOCAL.unlink()
-            print("🧹 Files cleaned up")
+            print("🧹 Files cleaned up (video.mp4 removed)")
     except Exception:
         pass
     
