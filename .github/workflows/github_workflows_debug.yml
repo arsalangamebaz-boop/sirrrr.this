@@ -52,7 +52,16 @@ jobs:
         fi
       env:
         IG_STORAGE_STATE_JSON: ${{ secrets.IG_STORAGE_STATE_JSON }}
-
+        
+    - name: Upload debug screenshots
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: debug-screenshots
+        path: |
+          debug_*.png
+          storage_state.json
+          
     - name: Run bot with debug (headful)
       env:
         IG_STORAGE_STATE_PATH: storage_state.json
