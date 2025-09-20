@@ -53,10 +53,10 @@ jobs:
       env:
         IG_STORAGE_STATE_JSON: ${{ secrets.IG_STORAGE_STATE_JSON }}
 
-    - name: Run bot with debug
+    - name: Run bot with debug (headful)
       env:
         IG_STORAGE_STATE_PATH: storage_state.json
-        PLAYWRIGHT_HEADLESS: true
+        PLAYWRIGHT_HEADLESS: false   # <-- run headful for debugging
         CI: true
         GITHUB_ACTIONS: true
         DEBUG: true
@@ -65,9 +65,9 @@ jobs:
         python -u main.py  # -u for unbuffered output
         echo "✅ Bot execution completed"
 
-    - name: Cleanup
+    - name: Keep debug artifacts
       if: always()
       run: |
-        rm -f storage_state.json
-        rm -f video.mp4
-        echo "✅ Cleanup completed"
+        echo "🔎 Leaving storage_state.json (for post-run inspection)"
+        ls -la
+        echo "✅ Debug run complete. Please review debug_*.png and console logs."
